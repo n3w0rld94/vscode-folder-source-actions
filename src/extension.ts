@@ -15,9 +15,7 @@ async function organizeImportsInDirectory(dir: vscode.Uri) {
         },
         async () => {
             const files = await getPotentialFilesToOrganize(dir);
-            return Promise.all(files
-                .map(getOrganizeImportsActionForFile)
-                .map(action => action.then(tryApplyCodeAction)));
+            return Promise.all(files.map(organizeImportsEnclosure));
         });
 }
 
@@ -29,39 +27,18 @@ async function getPotentialFilesToOrganize(
         '**/node_modules/**');
 }
 
-async function getOrganizeImportsActionForFile(
+async function organizeImportsEnclosure(
     file: vscode.Uri
-): Promise<vscode.CodeAction | undefined> {
+) {
     try {
-        const allActions = (await getAllCodeActionsForFile(file)) || [];
-        return allActions.find(isOrganizeImportsAction)
+        await executeOrganizeImports(file);
     } catch  {
-        // noop 
+        // noop
     }
     return undefined;
 }
 
-function getAllCodeActionsForFile(file: vscode.Uri): Thenable<ReadonlyArray<vscode.CodeAction> | undefined> {
-    // We need make sure VS Code knows about the file before trying to request code actions
+function executeOrganizeImports(file: vscode.Uri): Thenable<ReadonlyArray<vscode.CodeAction> | undefined> {
     return vscode.workspace.openTextDocument(file).then(() =>
-        vscode.commands.executeCommand('vscode.executeCodeActionProvider', file, fakeWholeDocumentRange));
-}
-
-function isOrganizeImportsAction(action: vscode.CodeAction): boolean {
-    return action && !!action.kind && vscode.CodeActionKind.SourceOrganizeImports.contains(action.kind);
-}
-
-async function tryApplyCodeAction(
-    action: vscode.CodeAction | undefined
-) {
-    if (!action) {
-        return;
-    }
-
-    if (action.edit && action.edit.size > 0) {
-        await vscode.workspace.applyEdit(action.edit);
-    }
-    if (action.command) {
-        await vscode.commands.executeCommand(action.command.command, ...(action.command.arguments || []));
-    }
+        vscode.commands.executeCommand('editor.action.organizeImports', file, fakeWholeDocumentRange));
 }
