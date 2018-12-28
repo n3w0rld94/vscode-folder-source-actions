@@ -1,6 +1,6 @@
 {
     "name": "folder-source-actions",
-    "private": true,
+    "private": false,
     "displayName": "Folder source actions",
     "description": "Apply organize imports to all files in a folder",
     "version": "0.0.4",
@@ -9,11 +9,11 @@
         "vscode": "^1.26.0"
     },
     "repository": {
-        "url": "https://github.com/mjbvz/vscode-folder-source-actions.git",
+        "url": "https://github.com/n3w0rld94/vscode-folder-source-actions.git",
         "type": "git"
     },
     "bugs": {
-        "url": "https://github.com/mjbvz/vscode-folder-source-actions/issues"
+        "url": "https://github.com/n3w0rld94/vscode-folder-source-actions/issues"
     },
     "keywords": [
         "imports",
