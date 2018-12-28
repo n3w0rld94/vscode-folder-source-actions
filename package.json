@@ -4,7 +4,7 @@
     "displayName": "Folder source actions",
     "description": "Apply organize imports to all files in a folder",
     "version": "0.0.4",
-    "publisher": "bierner",
+    "publisher": "Ilyasse",
     "engines": {
         "vscode": "^1.26.0"
     },
@@ -52,10 +52,10 @@
         "postinstall": "node ./node_modules/vscode/bin/install"
     },
     "devDependencies": {
+        "@types/mocha": "^2.2.42",
+        "@types/node": "^7.10.2",
+        "tslint": "^5.12.0",
         "typescript": "^2.9.2",
-        "vscode": "^1.1.6",
-        "tslint": "^5.8.0",
-        "@types/node": "^7.0.43",
-        "@types/mocha": "^2.2.42"
+        "vscode": "^1.1.26"
     }
 }
