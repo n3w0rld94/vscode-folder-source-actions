@@ -4,7 +4,8 @@ Adds a context menu that allows you to apply VS Code's organize imports code act
 
 ![Organize imports in folder context menu](https://github.com/mjbvz/vscode-folder-source-actions/raw/master/documentation/menu.png?raw=true)
 
-> **Important** — Requires VS Code 1.26+ (the current insiders builds)
+> **Important 1** — Requires VS Code 1.26+ (the current insiders builds)
+> **Important 2** — Not compatible with "Pair Brackets Colorizer" Extension. Make sure you deactivate it before using this extension.
 
 ## Supported languages
 
