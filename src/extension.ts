@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 
-const fakeSelectRange = new vscode.Range(9999, 0, 9999, 80);
+const fakeSelectRange = new vscode.Range(0, 0, 1, 0);
 const fakeWholeDocumentRange = new vscode.Range(0, 0, 99999, 0);
 
 export function activate(context: vscode.ExtensionContext) {
@@ -19,6 +19,7 @@ async function organizeImportsInDirectory(dir: vscode.Uri) {
       for (let i = 0; i < files.length; i++) {
         await organizeImportsEnclosure(files[i]);
       }
+      return await vscode.commands.executeCommand('workbench.action.closeAllEditor');
     });
 }
 
@@ -40,12 +41,10 @@ async function organizeImportsEnclosure(file: vscode.Uri) {
 
 async function executeOrganizeImports(file: vscode.Uri): Promise<ReadonlyArray<vscode.CodeAction> | undefined> {
   const option: vscode.TextDocumentShowOptions = {
-    preserveFocus: false,
     preview: false,
-    selection: fakeSelectRange,
+    selection: fakeSelectRange
   };
   const editor: vscode.TextEditor = await vscode.window.showTextDocument(file, option);
   while (vscode.window.activeTextEditor !== editor) { }
-  await vscode.commands.executeCommand('editor.action.organizeImports', file, fakeWholeDocumentRange);
-  return await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
+  return await vscode.commands.executeCommand('editor.action.organizeImports', file, fakeWholeDocumentRange);
 }
