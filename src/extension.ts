@@ -27,7 +27,7 @@ async function organizeImportsInDirectory(dir: vscode.Uri) {
       const files = await getPotentialFilesToOrganize(dir);
       for (let i = 0; i < files.length; i++) {
         await organizeImportsEnclosure(files[i]);
-        progressObject.report({ message: 'Files updated: ', increment: 100 / files.length });
+        progressObject.report({ message: 'Files updated: ' + i, increment: 100 / files.length });
         if (cancel.isCancellationRequested) {
           await vscode.commands.executeCommand('workbench.view.explorer');
           await vscode.commands.executeCommand('workbench.files.action.collapseExplorerFolders');
@@ -63,9 +63,9 @@ async function executeOrganizeImports(file: vscode.Uri) {
   };
   const editor: vscode.TextEditor = await vscode.window.showTextDocument(file, option);
   while (vscode.window.activeTextEditor !== editor) { }
-  const hello = await vscode.commands.executeCommand('editor.action.organizeImports', file);
-  console.log('hello is: ', JSON.stringify(hello));
-  return await vscode.commands.executeCommand('workbench.action.files.save');
+  await vscode.commands.executeCommand('editor.action.organizeImports', file);
+  await vscode.commands.executeCommand('workbench.action.files.save');
+  return await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
 }
 
 function checkConflictingExtensions() {
@@ -81,10 +81,5 @@ function checkConflictingExtensions() {
 
 function formatExtId(extId: string): string {
   let dummy = extId.substr(extId.indexOf('.') + 1);
-  dummy.replace('-', ' ');
-  let newExtId: string[] = dummy.split(' ');
-  newExtId.forEach((word) => {
-    word = word.charAt(0).toLocaleUpperCase().concat(word.substr(1));
-  });
-  return newExtId.join(' ');
+  return dummy;
 }
