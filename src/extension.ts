@@ -9,10 +9,13 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 async function organizeImportsInDirectory(dir: vscode.Uri) {
-  // We deactivate code actions on save so that only the selected actions are performed.
-  vscode.workspace.getConfiguration().update('editor.codeActionsOnSave', undefined, vscode.ConfigurationTarget.Workspace);
-  vscode.workspace.getConfiguration().update('tslint.autoFixOnSave', false, vscode.ConfigurationTarget.Workspace);
-
+  // We ask user if he wants to deactivate code actions on save.
+  const disableActionsOnSave = await vscode.window.showInformationMessage('Do you want to deactivate all code actions on save before proceeding?'
+    + '\nNote: This will not affect your user settings.', ...['yes', 'no']);
+  if (disableActionsOnSave === 'yes') {
+    vscode.workspace.getConfiguration().update('editor.codeActionsOnSave', undefined, vscode.ConfigurationTarget.Workspace);
+    vscode.workspace.getConfiguration().update('tslint.autoFixOnSave', false, vscode.ConfigurationTarget.Workspace);
+  }
   //Here we check for uncompatible extensions before running the extension itself.
   let conflictExt: Array<string> = checkConflictingExtensions();
   if (conflictExt.length > 0) {
@@ -42,6 +45,7 @@ async function organizeImportsInDirectory(dir: vscode.Uri) {
           return;
         }
       }
+      vscode.commands.executeCommand('workbench.action.closeAllEditors');
       await vscode.commands.executeCommand('workbench.view.explorer');
       await vscode.commands.executeCommand('workbench.files.action.collapseExplorerFolders');
       initiallyOpenedFiles.forEach(async (fileUri) => vscode.window.showTextDocument(fileUri));
@@ -73,7 +77,6 @@ async function executeOrganizeImports(file: vscode.Uri) {
   while (vscode.window.activeTextEditor !== editor) { }
   await vscode.commands.executeCommand('editor.action.organizeImports', file);
   await vscode.commands.executeCommand('workbench.action.files.save');
-  return await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
 }
 
 function checkConflictingExtensions() {
