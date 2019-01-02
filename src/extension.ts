@@ -23,14 +23,20 @@ async function organizeImportsInDirectory(dir: vscode.Uri) {
       location: vscode.ProgressLocation.Notification,
       title: 'Organizing Imports in Folder'
     },
-    async (progressObject) => {
+    async (progressObject, cancel) => {
       const files = await getPotentialFilesToOrganize(dir);
       for (let i = 0; i < files.length; i++) {
         await organizeImportsEnclosure(files[i]);
-        progressObject.report({ message: 'Files updated: ', increment: i * 100 / files.length });
+        progressObject.report({ message: 'Files updated: ', increment: 100 / files.length });
+        if (cancel.isCancellationRequested) {
+          await vscode.commands.executeCommand('workbench.view.explorer');
+          await vscode.commands.executeCommand('workbench.files.action.collapseExplorerFolders');
+          await vscode.window.showInformationMessage('Operation Interrupted', ...['Ok']);
+          return;
+        }
       }
       await vscode.commands.executeCommand('workbench.view.explorer');
-      vscode.commands.executeCommand('workbench.files.action.collapseExplorerFolders');
+      await vscode.commands.executeCommand('workbench.files.action.collapseExplorerFolders');
       await vscode.window.showInformationMessage('Operation completed', ...['Ok']);
     });
 }
@@ -57,9 +63,9 @@ async function executeOrganizeImports(file: vscode.Uri) {
   };
   const editor: vscode.TextEditor = await vscode.window.showTextDocument(file, option);
   while (vscode.window.activeTextEditor !== editor) { }
-  await vscode.commands.executeCommand('editor.action.organizeImports', file);
-  await vscode.commands.executeCommand('editor.action.organizeImports', file);
-  return await vscode.commands.executeCommand('workbench.files.action.save');
+  const hello = await vscode.commands.executeCommand('editor.action.organizeImports', file);
+  console.log('hello is: ', JSON.stringify(hello));
+  return await vscode.commands.executeCommand('workbench.action.files.save');
 }
 
 function checkConflictingExtensions() {
