@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { extensions } from 'vscode';
 
 const conflictExtId: string[] = ['coenraads.bracket-pair-colorizer'];
+let disableActionsOnSave: boolean = true;
 
 export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(vscode.commands.registerCommand('folderSourceActions.organizeImports',
@@ -10,9 +11,10 @@ export function activate(context: vscode.ExtensionContext) {
 
 async function organizeImportsInDirectory(dir: vscode.Uri) {
   // We ask user if he wants to deactivate code actions on save.
-  const disableActionsOnSave = await vscode.window.showInformationMessage('Do you want to deactivate all code actions on save before proceeding?'
+  const response = await vscode.window.showInformationMessage('Do you want to deactivate all code actions on save before proceeding?'
     + '\nNote: This will not affect your user settings.', ...['yes', 'no']);
-  if (disableActionsOnSave === 'yes') {
+  disableActionsOnSave = (response === 'yes');
+  if (disableActionsOnSave) {
     vscode.workspace.getConfiguration().update('editor.codeActionsOnSave', undefined, vscode.ConfigurationTarget.Workspace);
     vscode.workspace.getConfiguration().update('tslint.autoFixOnSave', false, vscode.ConfigurationTarget.Workspace);
   }
@@ -25,32 +27,37 @@ async function organizeImportsInDirectory(dir: vscode.Uri) {
   }
   //Here starts command execution
   let i = 0;
+  const notificationMessage = 'Organizing Imports in Folder';
   await vscode.window.withProgress(
     {
       location: vscode.ProgressLocation.Notification,
-      title: 'Organizing Imports in Folder',
+      title: notificationMessage,
       cancellable: true
     },
     async (progressObject, cancel) => {
-      // We want to preserve open editors, so we store the correspondent URIs.s
+      // We want to preserve open editors, so we store the correspondent URIs.
       const initiallyOpenedFiles = [...vscode.window.visibleTextEditors.map((a) => a.document.uri)];
       const files = await getPotentialFilesToOrganize(dir);
       for (i = 0; i < files.length; i++) {
         await organizeImportsEnclosure(files[i]);
         progressObject.report({ message: 'updated ' + (i + 1) + ' files.', increment: 100 / files.length });
         if (cancel.isCancellationRequested) {
-          await vscode.commands.executeCommand('workbench.view.explorer');
-          await vscode.commands.executeCommand('workbench.files.action.collapseExplorerFolders');
+          await finalize(initiallyOpenedFiles);
           await vscode.window.showInformationMessage('Operation Interrupted', ...['Ok']);
           return;
         }
       }
-      vscode.commands.executeCommand('workbench.action.closeAllEditors');
-      await vscode.commands.executeCommand('workbench.view.explorer');
-      await vscode.commands.executeCommand('workbench.files.action.collapseExplorerFolders');
-      initiallyOpenedFiles.forEach(async (fileUri) => vscode.window.showTextDocument(fileUri));
+      await finalize(initiallyOpenedFiles);
     });
   await vscode.window.showInformationMessage('Operation completed: ' + 'updated ' + (i + 1) + ' files.', 'Ok');
+
+  async function finalize(initiallyOpenedFiles: vscode.Uri[]) {
+    await vscode.commands.executeCommand('workbench.action.files.saveAll');
+    vscode.commands.executeCommand('workbench.action.closeAllEditors');
+    await vscode.commands.executeCommand('workbench.view.explorer');
+    await vscode.commands.executeCommand('workbench.files.action.collapseExplorerFolders');
+    initiallyOpenedFiles.forEach(async (fileUri) => vscode.window.showTextDocument(fileUri));
+  }
 }
 
 async function getPotentialFilesToOrganize(dir: vscode.Uri): Promise<ReadonlyArray<vscode.Uri>> {
@@ -76,7 +83,9 @@ async function executeOrganizeImports(file: vscode.Uri) {
   const editor: vscode.TextEditor = await vscode.window.showTextDocument(file, option);
   while (vscode.window.activeTextEditor !== editor) { }
   await vscode.commands.executeCommand('editor.action.organizeImports', file);
-  await vscode.commands.executeCommand('workbench.action.files.save');
+  if (!disableActionsOnSave) {
+    await vscode.commands.executeCommand('workbench.action.files.save');
+  }
 }
 
 function checkConflictingExtensions() {
