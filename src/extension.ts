@@ -21,7 +21,8 @@ async function organizeImportsInDirectory(dir: vscode.Uri) {
   vscode.window.withProgress(
     {
       location: vscode.ProgressLocation.Notification,
-      title: 'Organizing Imports in Folder'
+      title: 'Organizing Imports in Folder',
+      cancellable: true
     },
     async (progressObject, cancel) => {
       const files = await getPotentialFilesToOrganize(dir);
