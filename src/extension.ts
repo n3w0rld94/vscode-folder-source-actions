@@ -3,8 +3,6 @@ import { extensions } from 'vscode';
 import { isUndefined } from 'util';
 
 const conflictExtId: string[] = ['CoenraadS.bracket-pair-colorizer'];
-const fakeSelectRange = new vscode.Range(0, 0, 1, 0);
-const fakeWholeDocumentRange = new vscode.Range(0, 0, 99999, 0);
 
 export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(vscode.commands.registerCommand('folderSourceActions.organizeImports',
@@ -22,19 +20,18 @@ async function organizeImportsInDirectory(dir: vscode.Uri) {
   //Here starts command execution
   vscode.window.withProgress(
     {
-      location: vscode.ProgressLocation.Window,
+      location: vscode.ProgressLocation.Notification,
       title: 'Organizing Imports in Folder'
     },
-    async () => {
+    async (progressObject) => {
       const files = await getPotentialFilesToOrganize(dir);
       for (let i = 0; i < files.length; i++) {
         await organizeImportsEnclosure(files[i]);
+        progressObject.report({ message: 'Files updated: ', increment: i * 100 / files.length });
       }
+      await vscode.commands.executeCommand('workbench.view.explorer');
       vscode.commands.executeCommand('workbench.files.action.collapseExplorerFolders');
-      let response = await vscode.window.showInformationMessage('Would you like to save changes now?', ...['Yes', 'no']);
-      if (response === 'Yes') {
-        vscode.commands.executeCommand('workbench.files.action.saveAll');
-      }
+      await vscode.window.showInformationMessage('Operation completed', ...['Ok']);
     });
 }
 
@@ -57,13 +54,12 @@ async function organizeImportsEnclosure(file: vscode.Uri) {
 async function executeOrganizeImports(file: vscode.Uri) {
   const option: vscode.TextDocumentShowOptions = {
     preview: false,
-    selection: fakeSelectRange
   };
   const editor: vscode.TextEditor = await vscode.window.showTextDocument(file, option);
   while (vscode.window.activeTextEditor !== editor) { }
-  vscode.commands.executeCommand('editor.action.organizeImports', file, fakeWholeDocumentRange);
-  setTimeout(() => null, 2000);
-  return await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
+  await vscode.commands.executeCommand('editor.action.organizeImports', file);
+  await vscode.commands.executeCommand('editor.action.organizeImports', file);
+  return await vscode.commands.executeCommand('workbench.files.action.save');
 }
 
 function checkConflictingExtensions() {
