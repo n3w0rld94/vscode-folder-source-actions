@@ -1,8 +1,7 @@
 import * as vscode from 'vscode';
 import { extensions } from 'vscode';
-import { isUndefined } from 'util';
 
-const conflictExtId: string[] = ['CoenraadS.bracket-pair-colorizer'];
+const conflictExtId: string[] = ['coenraads.bracket-pair-colorizer'];
 
 export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(vscode.commands.registerCommand('folderSourceActions.organizeImports',
@@ -10,11 +9,14 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 async function organizeImportsInDirectory(dir: vscode.Uri) {
+  // We deactivate code actions on save so that only the selected actions are performed.
+  vscode.workspace.getConfiguration().update('editor.codeActionsOnSave', undefined, vscode.ConfigurationTarget.Workspace);
+
   //Here we check for uncompatible extensions before running the extension itself.
   let conflictExt: Array<string> = checkConflictingExtensions();
   if (conflictExt.length > 0) {
-    await vscode.window.showWarningMessage('The following uncompatible extensions have been detected: ',
-      ...conflictExt.map(ext => ext + ', '));
+    await vscode.window.showWarningMessage('The following uncompatible extensions have been detected: ' +
+      conflictExt.map(ext => ext + ', '), 'ok');
     return;
   }
   //Here starts command execution
@@ -73,7 +75,7 @@ function checkConflictingExtensions() {
   let conflictExt: Array<string> = [];
   conflictExtId.forEach((extensionId) => {
     let ext = extensions.getExtension(extensionId);
-    if (!isUndefined(ext) && !ext.isActive) {
+    if (ext && !ext.isActive) {
       conflictExt.push(formatExtId(ext.id));
     }
   });
