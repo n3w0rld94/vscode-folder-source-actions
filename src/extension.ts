@@ -11,13 +11,9 @@ export function activate(context: vscode.ExtensionContext) {
 
 async function organizeImportsInDirectory(dir: vscode.Uri) {
   // We ask user if he wants to deactivate code actions on save.
-  const response = await vscode.window.showInformationMessage('Do you want to deactivate all code actions on save before proceeding?'
+  const response = await vscode.window.showInformationMessage('Do you want to deactivate all code actions on save to improve performance?'
     + '\nNote: This will not affect your user settings.', ...['yes', 'no']);
   disableActionsOnSave = (response === 'yes');
-  if (disableActionsOnSave) {
-    vscode.workspace.getConfiguration().update('editor.codeActionsOnSave', undefined, vscode.ConfigurationTarget.Workspace);
-    vscode.workspace.getConfiguration().update('tslint.autoFixOnSave', false, vscode.ConfigurationTarget.Workspace);
-  }
   //Here we check for uncompatible extensions before running the extension itself.
   let conflictExt: Array<string> = checkConflictingExtensions();
   if (conflictExt.length > 0) {
