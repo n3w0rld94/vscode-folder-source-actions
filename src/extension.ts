@@ -1,8 +1,15 @@
 import * as vscode from 'vscode';
 import { extensions } from 'vscode';
 
+const command: Map<string, string> = new Map([
+  ["Organize_Imports", "editor.action.organizeImports"],
+  ["Format_File", "editor.action.formatDocument"],
+  ["Change_All_Occurrences", "editor.action.changeAll"]]);
 const conflictExtId: string[] = ['coenraads.bracket-pair-colorizer'];
+let commandToExecute: string;
 let disableActionsOnSave: boolean = true;
+
+
 
 export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(vscode.commands.registerCommand('folderSourceActions.organizeImports',
@@ -10,7 +17,15 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 async function organizeImportsInDirectory(dir: vscode.Uri) {
-  // We ask user if he wants to deactivate code actions on save.
+  // We ask user for user preferences
+  const commandPicked = await vscode.window.showQuickPick([...command.keys()], {
+    canPickMany: false,
+    placeHolder: 'Select the command to execute ...'
+  });
+  if (!commandPicked) {
+    return;
+  }
+  commandToExecute = <string>command.get(commandPicked);
   const response = await vscode.window.showInformationMessage('Do you want to deactivate all code actions on save to improve performance?'
     + '\nNote: This will not affect your user settings.', ...['yes', 'no']);
   disableActionsOnSave = (response === 'yes');
@@ -78,7 +93,7 @@ async function executeOrganizeImports(file: vscode.Uri) {
   };
   const editor: vscode.TextEditor = await vscode.window.showTextDocument(file, option);
   while (vscode.window.activeTextEditor !== editor) { }
-  await vscode.commands.executeCommand('editor.action.organizeImports', file);
+  await vscode.commands.executeCommand(commandToExecute, file);
   if (!disableActionsOnSave) {
     await vscode.commands.executeCommand('workbench.action.files.save');
   }
