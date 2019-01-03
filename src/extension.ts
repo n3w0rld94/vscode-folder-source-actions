@@ -38,6 +38,8 @@ async function organizeImportsInDirectory(dir: vscode.Uri) {
   //Here starts command execution
   let i = 0;
   const notificationMessage = commandToExecute + ' executing in folder';
+  const initiallyOpenedFiles = [...vscode.window.visibleTextEditors.map((a) => a.document.uri)];
+  const files = await getPotentialFilesToOrganize(dir);
   await vscode.window.withProgress(
     {
       location: vscode.ProgressLocation.Notification,
@@ -46,8 +48,6 @@ async function organizeImportsInDirectory(dir: vscode.Uri) {
     },
     async (progressObject, cancel) => {
       // We want to preserve open editors, so we store the correspondent URIs.
-      const initiallyOpenedFiles = [...vscode.window.visibleTextEditors.map((a) => a.document.uri)];
-      const files = await getPotentialFilesToOrganize(dir);
       for (i = 0; i < files.length; i++) {
         await organizeImportsEnclosure(files[i]);
         progressObject.report({ message: 'updated ' + (i + 1) + ' files.', increment: 100 / files.length });
@@ -57,13 +57,17 @@ async function organizeImportsInDirectory(dir: vscode.Uri) {
           return;
         }
       }
-      await finalize(initiallyOpenedFiles);
     });
-  await vscode.window.showInformationMessage('Operation completed: ' + 'updated ' + (i + 1) + ' files.', 'Ok');
+  const response = await vscode.window.showInformationMessage('Operation completed: ' + 'updated ' + (i + 1) + ' files.\nDo you want to save changes?(changes reverted by default)', ...['Yes', 'No']);
+  if (response && response === 'Yes') {
+    await vscode.commands.executeCommand('workbench.action.files.saveAll');
+  } else {
+    await vscode.window.showInformationMessage('Changes reverted', 'Ok');
+  }
+  await finalize(initiallyOpenedFiles);
 
   async function finalize(initiallyOpenedFiles: vscode.Uri[]) {
-    await vscode.commands.executeCommand('workbench.action.files.saveAll');
-    vscode.commands.executeCommand('workbench.action.closeAllEditors');
+    await vscode.commands.executeCommand('workbench.action.closeAllEditors');
     await revertExplorer();
     initiallyOpenedFiles.forEach(async (fileUri) => vscode.window.showTextDocument(fileUri));
   }
