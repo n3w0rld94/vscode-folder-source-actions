@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
-import { extensions } from 'vscode';
+import { finalize, revertExplorer, checkConflictingExtensions } from './helper';
+import { findInDirectory } from './helper';
 
 const command: Map<string, string> = new Map([
   ["Organize Imports", "editor.action.organizeImports"],
@@ -8,8 +9,6 @@ const command: Map<string, string> = new Map([
 const conflictExtId: string[] = ['coenraads.bracket-pair-colorizer'];
 let commandToExecute: string;
 let disableActionsOnSave: boolean = true;
-
-
 
 export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(vscode.commands.registerCommand('folderSourceActions.organizeImports',
@@ -29,7 +28,7 @@ async function organizeImportsInDirectory(dir: vscode.Uri) {
     + '\nNote: This will not affect your user settings.', ...['yes', 'no']) === 'yes';
 
   //Here we check for uncompatible extensions before running the extension itself.
-  let conflictExt: Array<string> = checkConflictingExtensions();
+  let conflictExt: Array<string> = checkConflictingExtensions(conflictExtId);
   if (conflictExt.length > 0) {
     await vscode.window.showWarningMessage('The following uncompatible extensions have been detected,' +
       'disable before proceeding: ' + conflictExt.map(ext => ext + ', '), 'ok');
@@ -39,7 +38,7 @@ async function organizeImportsInDirectory(dir: vscode.Uri) {
   let i = 0;
   const notificationMessage = commandToExecute + ' executing in folder';
   const initiallyOpenedFiles = [...vscode.window.visibleTextEditors.map((a) => a.document.uri)];
-  const files = await getPotentialFilesToOrganize(dir);
+  const files = await findInDirectory(dir, '.ts');
   await vscode.window.withProgress(
     {
       location: vscode.ProgressLocation.Notification,
@@ -66,23 +65,6 @@ async function organizeImportsInDirectory(dir: vscode.Uri) {
   }
   await finalize(initiallyOpenedFiles);
 
-  async function finalize(initiallyOpenedFiles: vscode.Uri[]) {
-    await vscode.commands.executeCommand('workbench.action.closeAllEditors');
-    await revertExplorer();
-    initiallyOpenedFiles.forEach(async (fileUri) => vscode.window.showTextDocument(fileUri));
-  }
-
-  async function revertExplorer() {
-    await vscode.commands.executeCommand('workbench.view.explorer');
-    await vscode.commands.executeCommand('workbench.files.action.collapseExplorerFolders');
-  }
-}
-
-async function getPotentialFilesToOrganize(dir: vscode.Uri): Promise<ReadonlyArray<vscode.Uri>> {
-  return vscode.workspace.findFiles(
-    { base: dir.fsPath, pattern: '**/*.ts' },
-    '**/node_modules/**'
-  );
 }
 
 async function organizeImportsEnclosure(file: vscode.Uri) {
@@ -106,18 +88,3 @@ async function executeOrganizeImports(file: vscode.Uri) {
   }
 }
 
-function checkConflictingExtensions() {
-  let conflictExt: Array<string> = [];
-  conflictExtId.forEach((extensionId) => {
-    let ext = extensions.getExtension(extensionId);
-    if (ext && !ext.isActive) {
-      conflictExt.push(formatExtId(ext.id));
-    }
-  });
-  return conflictExt;
-}
-
-function formatExtId(extId: string): string {
-  let dummy = extId.substr(extId.indexOf('.') + 1);
-  return dummy;
-}
